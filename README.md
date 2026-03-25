@@ -4,14 +4,16 @@ MCP server for controlling Android TV devices. Supports device discovery, pairin
 
 ## Installation
 
+Install directly from GitHub:
+
 ```bash
-uv tool install android-tv-mcp
+uv tool install git+https://github.com/dmarkey/android-tv-mcp.git
 ```
 
-Or run directly:
+Or run directly without installing:
 
 ```bash
-uvx android-tv-mcp
+uvx --from git+https://github.com/dmarkey/android-tv-mcp.git android-tv-mcp
 ```
 
 ## MCP Client Configuration
@@ -25,7 +27,7 @@ Add to your MCP settings:
   "mcpServers": {
     "android-tv": {
       "command": "uvx",
-      "args": ["android-tv-mcp"]
+      "args": ["--from", "git+https://github.com/dmarkey/android-tv-mcp.git", "android-tv-mcp"]
     }
   }
 }
