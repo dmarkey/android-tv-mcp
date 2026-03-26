@@ -94,3 +94,27 @@ def delete_device(device_id: str) -> bool:
         save_devices(new_devices)
         return True
     return False
+
+
+def _get_apps_file(device_id: str) -> Path:
+    """Get the path to the discovered apps file for a device."""
+    return get_config_dir() / f"{device_id}_apps.json"
+
+
+def load_discovered_apps(device_id: str) -> set[str]:
+    """Load discovered apps for a device."""
+    apps_file = _get_apps_file(device_id)
+    if apps_file.exists():
+        try:
+            with open(apps_file, "r", encoding="utf-8") as f:
+                return set(json.load(f))
+        except (json.JSONDecodeError, IOError):
+            return set()
+    return set()
+
+
+def save_discovered_apps(device_id: str, apps: set[str]) -> None:
+    """Save discovered apps for a device."""
+    apps_file = _get_apps_file(device_id)
+    with open(apps_file, "w", encoding="utf-8") as f:
+        json.dump(sorted(apps), f, indent=2, ensure_ascii=False)

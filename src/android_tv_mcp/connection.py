@@ -10,7 +10,7 @@ from androidtvremote2 import (
     InvalidAuth,
 )
 
-from .config import get_cert_paths, find_device, upsert_device
+from .config import get_cert_paths, find_device, upsert_device, load_discovered_apps, save_discovered_apps
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class DeviceState:
     is_muted: bool = False
     is_available: bool = False
     needs_pairing: bool = False
+    discovered_apps: set[str] = field(default_factory=set)
 
 
 class ConnectionManager:
@@ -46,6 +47,9 @@ class ConnectionManager:
 
         def on_current_app(app: str) -> None:
             state.current_app = app
+            if app and app not in state.discovered_apps:
+                state.discovered_apps.add(app)
+                save_discovered_apps(device_id, state.discovered_apps)
 
         def on_volume_info(info: dict) -> None:
             state.volume_level = info.get("level", 0)
@@ -73,7 +77,7 @@ class ConnectionManager:
         cert_path, key_path = get_cert_paths(device_id)
         remote = AndroidTVRemote(CLIENT_NAME, cert_path, key_path, device["host"])
 
-        self._state[device_id] = DeviceState()
+        self._state[device_id] = DeviceState(discovered_apps=load_discovered_apps(device_id))
         self._connections[device_id] = remote
         self._make_callbacks(device_id)
 
@@ -148,7 +152,7 @@ class ConnectionManager:
             upsert_device(device)
 
         # Connect after pairing
-        self._state[device_id] = DeviceState()
+        self._state[device_id] = DeviceState(discovered_apps=load_discovered_apps(device_id))
         self._connections[device_id] = remote
         self._make_callbacks(device_id)
 
@@ -176,12 +180,19 @@ class ConnectionManager:
             raise ValueError(f"Device '{device_id}' is not connected")
         remote.send_text(text)
 
-    def launch_app(self, device_id: str, app_link: str) -> None:
-        """Launch an app by deep link on a connected device."""
+    def launch_app(self, device_id: str, app: str) -> None:
+        """Launch an app by package name or deep link on a connected device."""
         remote = self._connections.get(device_id)
         if not remote:
             raise ValueError(f"Device '{device_id}' is not connected")
-        remote.send_launch_app_command(app_link)
+        remote.send_launch_app_command(app)
+
+    def get_discovered_apps(self, device_id: str) -> set[str]:
+        """Get discovered apps for a device (from cache or persisted)."""
+        state = self._state.get(device_id)
+        if state:
+            return state.discovered_apps
+        return load_discovered_apps(device_id)
 
     def get_state(self, device_id: str) -> dict:
         """Get cached state for a connected device."""

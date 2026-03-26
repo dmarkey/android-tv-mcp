@@ -155,16 +155,41 @@ async def send_text(device_id: str, text: str) -> str:
 
 
 @mcp.tool()
-async def launch_app(device_id: str, app_link: str) -> str:
-    """Launch an app on the Android TV using a deep link URL.
+async def launch_app(device_id: str, app: str) -> str:
+    """Launch an app on the Android TV by package name or deep link URL.
+
+    Use list_apps to see previously discovered package names for a device.
 
     Args:
         device_id: The device identifier.
-        app_link: The app deep link (e.g. "https://www.youtube.com" for YouTube).
+        app: The app package name (e.g. "com.google.android.youtube.tv",
+             "com.netflix.ninja", "com.disney.disneyplus") or a deep link URL.
     """
     try:
-        manager.launch_app(device_id, app_link)
-        return f"Launched {app_link} on {device_id}."
+        manager.launch_app(device_id, app)
+        return f"Launched {app} on {device_id}."
+    except Exception as e:
+        return f"Error: {e}"
+
+
+@mcp.tool()
+async def list_apps(device_id: str) -> str:
+    """List apps that have been discovered on an Android TV device.
+
+    Apps are automatically discovered as they are used on the device.
+    The more the device is used, the more complete this list becomes.
+
+    Args:
+        device_id: The device identifier.
+    """
+    try:
+        apps = manager.get_discovered_apps(device_id)
+        if not apps:
+            return f"No apps discovered yet for {device_id}. Use the device and apps will be recorded automatically."
+        lines = [f"Discovered apps on {device_id}:"]
+        for app in sorted(apps):
+            lines.append(f"  - {app}")
+        return "\n".join(lines)
     except Exception as e:
         return f"Error: {e}"
 
