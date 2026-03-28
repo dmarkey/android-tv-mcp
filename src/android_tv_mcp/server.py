@@ -41,10 +41,7 @@ async def list_devices() -> str:
     lines = ["Saved devices:"]
     for d in devices:
         paired = "paired" if d.get("paired") else "not paired"
-        connected = (
-            "connected" if d["id"] in manager._connections else "disconnected"
-        )
-        lines.append(f"  - {d['id']}: {d['name']} ({d['host']}) [{paired}, {connected}]")
+        lines.append(f"  - {d['id']}: {d['name']} ({d['host']}) [{paired}]")
     return "\n".join(lines)
 
 
@@ -77,22 +74,6 @@ async def finish_pairing(device_id: str, code: str) -> str:
         return await manager.finish_pairing(device_id, code)
     except Exception as e:
         return f"Error finishing pairing: {e}"
-
-
-@mcp.tool()
-async def connect(device_id: str) -> str:
-    """Connect to a previously paired Android TV device.
-
-    Args:
-        device_id: The device identifier.
-    """
-    try:
-        info = await manager.connect(device_id)
-        if info:
-            return f"Connected to {device_id}. Device info: {info}"
-        return f"Connected to {device_id}."
-    except Exception as e:
-        return f"Error connecting: {e}"
 
 
 @mcp.tool()
@@ -129,7 +110,7 @@ async def send_key(device_id: str, key: str, direction: str = "SHORT", repeat: i
     try:
         repeat = max(1, min(repeat, 50))
         for i in range(repeat):
-            manager.send_key(device_id, key, direction)
+            await manager.send_key(device_id, key, direction)
             if i < repeat - 1:
                 await asyncio.sleep(0.1)
         if repeat > 1:
@@ -148,7 +129,7 @@ async def send_text(device_id: str, text: str) -> str:
         text: The text to type.
     """
     try:
-        manager.send_text(device_id, text)
+        await manager.send_text(device_id, text)
         return f"Sent text to {device_id}."
     except Exception as e:
         return f"Error: {e}"
@@ -166,7 +147,7 @@ async def launch_app(device_id: str, app: str) -> str:
              "com.netflix.ninja", "com.disney.disneyplus") or a deep link URL.
     """
     try:
-        manager.launch_app(device_id, app)
+        await manager.launch_app(device_id, app)
         return f"Launched {app} on {device_id}."
     except Exception as e:
         return f"Error: {e}"
@@ -183,7 +164,7 @@ async def list_apps(device_id: str) -> str:
         device_id: The device identifier.
     """
     try:
-        apps = manager.get_discovered_apps(device_id)
+        apps = await manager.get_discovered_apps(device_id)
         if not apps:
             return f"No apps discovered yet for {device_id}. Use the device and apps will be recorded automatically."
         lines = [f"Discovered apps on {device_id}:"]
@@ -205,7 +186,7 @@ async def get_device_status(device_id: str) -> str:
         Current power state, active app, volume level, and availability.
     """
     try:
-        state = manager.get_state(device_id)
+        state = await manager.get_state(device_id)
         lines = [
             f"Status for {device_id}:",
             f"  Power: {'on' if state['is_on'] else 'off/standby'}",

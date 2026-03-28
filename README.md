@@ -43,8 +43,9 @@ Add to your MCP settings:
 
 ### Controlling your TV
 
+Devices connect automatically when you use any control tool — no explicit connect step needed.
+
 ```
-connect(device_id="living_room")
 send_key(device_id="living_room", key="HOME")
 send_key(device_id="living_room", key="DPAD_UP")
 send_key(device_id="living_room", key="DPAD_CENTER")
@@ -88,7 +89,6 @@ Use `direction` parameter: `START_LONG` to begin holding, `END_LONG` to release.
 | `list_devices` | List saved devices |
 | `start_pairing` | Begin pairing (TV shows a code) |
 | `finish_pairing` | Complete pairing with the code |
-| `connect` | Connect to a paired device |
 | `disconnect` | Disconnect from a device |
 | `send_key` | Send remote control key |
 | `send_text` | Type text on the TV |

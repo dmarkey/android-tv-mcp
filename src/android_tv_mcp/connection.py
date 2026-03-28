@@ -166,39 +166,39 @@ class ConnectionManager:
 
         return "Pairing successful. Device is now connected."
 
-    def send_key(self, device_id: str, key: str, direction: str = "SHORT") -> None:
-        """Send a key command to a connected device."""
-        remote = self._connections.get(device_id)
-        if not remote:
-            raise ValueError(f"Device '{device_id}' is not connected")
-        remote.send_key_command(key, direction)
+    async def _ensure_connected(self, device_id: str) -> None:
+        """Auto-connect to a paired device if not already connected."""
+        if device_id in self._connections:
+            return
+        await self.connect(device_id)
 
-    def send_text(self, device_id: str, text: str) -> None:
-        """Send text input to a connected device."""
-        remote = self._connections.get(device_id)
-        if not remote:
-            raise ValueError(f"Device '{device_id}' is not connected")
-        remote.send_text(text)
+    async def send_key(self, device_id: str, key: str, direction: str = "SHORT") -> None:
+        """Send a key command to a device, connecting automatically if needed."""
+        await self._ensure_connected(device_id)
+        self._connections[device_id].send_key_command(key, direction)
 
-    def launch_app(self, device_id: str, app: str) -> None:
-        """Launch an app by package name or deep link on a connected device."""
-        remote = self._connections.get(device_id)
-        if not remote:
-            raise ValueError(f"Device '{device_id}' is not connected")
-        remote.send_launch_app_command(app)
+    async def send_text(self, device_id: str, text: str) -> None:
+        """Send text input to a device, connecting automatically if needed."""
+        await self._ensure_connected(device_id)
+        self._connections[device_id].send_text(text)
 
-    def get_discovered_apps(self, device_id: str) -> set[str]:
-        """Get discovered apps for a device (from cache or persisted)."""
+    async def launch_app(self, device_id: str, app: str) -> None:
+        """Launch an app by package name or deep link, connecting automatically if needed."""
+        await self._ensure_connected(device_id)
+        self._connections[device_id].send_launch_app_command(app)
+
+    async def get_discovered_apps(self, device_id: str) -> set[str]:
+        """Get discovered apps for a device, connecting automatically if needed."""
+        await self._ensure_connected(device_id)
         state = self._state.get(device_id)
         if state:
             return state.discovered_apps
         return load_discovered_apps(device_id)
 
-    def get_state(self, device_id: str) -> dict:
-        """Get cached state for a connected device."""
-        state = self._state.get(device_id)
-        if not state:
-            raise ValueError(f"Device '{device_id}' is not connected")
+    async def get_state(self, device_id: str) -> dict:
+        """Get cached state for a device, connecting automatically if needed."""
+        await self._ensure_connected(device_id)
+        state = self._state[device_id]
         return {
             "is_on": state.is_on,
             "current_app": state.current_app,
