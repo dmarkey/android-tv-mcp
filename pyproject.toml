@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "android-tv-mcp"
-version = "0.2.0"
+version = "0.3.0"
 authors = [
     {name = "David Markey", email = "david@dmarkey.com"},
 ]

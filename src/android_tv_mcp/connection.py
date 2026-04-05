@@ -1,5 +1,6 @@
 """Connection manager for Android TV devices."""
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 
@@ -27,6 +28,7 @@ class DeviceState:
     is_available: bool = False
     needs_pairing: bool = False
     discovered_apps: set[str] = field(default_factory=set)
+    ready_event: asyncio.Event = field(default_factory=asyncio.Event)
 
 
 class ConnectionManager:
@@ -58,6 +60,8 @@ class ConnectionManager:
 
         def on_is_available(available: bool) -> None:
             state.is_available = available
+            if available:
+                state.ready_event.set()
 
         remote.add_is_on_updated_callback(on_is_on)
         remote.add_current_app_updated_callback(on_current_app)
@@ -98,6 +102,13 @@ class ConnectionManager:
             self._state[device_id].needs_pairing = True
 
         remote.keep_reconnecting(on_invalid_auth)
+
+        # Wait for the device to signal it's ready before sending commands
+        try:
+            await asyncio.wait_for(self._state[device_id].ready_event.wait(), timeout=5.0)
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Device '%s' did not signal ready within 5s, proceeding anyway", device_id)
+
         return remote.device_info or {}
 
     async def disconnect(self, device_id: str) -> None:
